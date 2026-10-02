@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/vazirmatn@33.0.3/Vazirmatn-font-face.css" rel="stylesheet">
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1d2733;--muted:#6b7785;--line:#e3e8ee;--pri:#375f83;--pri2:#e8eef4;
+--ok:#1f8a4c;--okbg:#e2f4e9;--warn:#b25e00;--warnbg:#fdeed9;--bad:#b3261e;--badbg:#fbe3e1;--info:#2d5f9a;--infobg:#e4edf8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 Vazirmatn,Tahoma,sans-serif;-webkit-text-size-adjust:100%}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 20px;position:sticky;top:0;z-index:5}
+.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:18px;margin:0;color:var(--pri)}
+.spacer{flex:1}
+button{font:inherit;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 14px;cursor:pointer;color:var(--ink)}
+button.pri{background:var(--pri);color:#fff;border-color:var(--pri)}
+button.danger{color:var(--bad);border-color:#f0c9c6}
+button:disabled{opacity:.5;cursor:default}
+/* آمار مینیمال: قرص‌های کوچک تک‌خطی */
+.kpis{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.kpi{display:inline-flex;align-items:baseline;gap:6px;background:transparent;border:1px solid var(--line);border-radius:99px;padding:2px 11px;cursor:pointer;white-space:nowrap}
+.kpi:hover{background:var(--bg)}
+.kpi span{font-size:11.5px;color:var(--muted)}
+.kpi b{font-size:13.5px;font-weight:600;font-feature-settings:"tnum"}
+.kpi.hot b{color:var(--bad)}
+.sync{font-size:11px;color:var(--muted);margin-top:6px;display:none}
+.banner{margin:14px 20px 0;background:#fff3c4;border:1px solid #f0dc8a;border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:10px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;padding:14px 20px}
+.bar input,.bar select{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.bar input{flex:1;min-width:180px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:0 20px 30px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card h3{margin:0;font-size:15px;cursor:pointer}
+.card h3:hover{color:var(--pri)}
+.sub{color:var(--muted);font-size:12px}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11.5px;padding:2px 9px;border-radius:99px;background:var(--pri2);color:var(--pri);white-space:nowrap}
+.t-ok{background:var(--okbg);color:var(--ok)}.t-warn{background:var(--warnbg);color:var(--warn)}
+.t-bad{background:var(--badbg);color:var(--bad)}.t-info{background:var(--infobg);color:var(--info)}
+.t-need{background:#fff3c4;color:#7a5b00}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--bg);border-radius:8px;padding:8px}
+.nums div{font-size:11px;color:var(--muted)}
+.nums b{display:block;font-size:14px;color:var(--ink);font-feature-settings:"tnum"}
+.act{font-size:12.5px;background:var(--bg);border-radius:8px;padding:6px 10px}
+.row{display:flex;gap:6px}
+.row button{flex:1;padding:6px}
+.empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
+.modal{position:fixed;inset:0;background:rgba(20,30,40,.45);display:none;align-items:flex-start;justify-content:center;z-index:20;overflow:auto;padding:30px 12px}
+#mOrder{z-index:25}
+.modal.on{display:flex}
+.box{background:var(--card);border-radius:14px;width:100%;max-width:640px;padding:20px}
+.box h2{margin:0 0 14px;font-size:17px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+label.req span::after{content:" *";color:var(--bad)}
+input,select,textarea{font:inherit;color:var(--ink);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+textarea{min-height:64px;resize:vertical}
+.dateline{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dateline input{flex:1;min-width:130px;direction:ltr;text-align:right}
+.dateline button{padding:5px 9px;font-size:12px}
+.hint{font-size:11.5px;color:var(--muted)}
+.hint.err{color:var(--bad)}
+.sec{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.sec h4{margin:0 0 8px;font-size:13px}
+.notes{max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.note{background:var(--bg);border-radius:8px;padding:6px 10px;font-size:12.5px;white-space:pre-wrap}
+.note i{font-style:normal;color:var(--muted);font-size:11px;display:block}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th{color:var(--muted);font-weight:500}
+.tw{overflow:auto;-webkit-overflow-scrolling:touch}
+.foot{display:flex;gap:8px;margin-top:18px;align-items:center}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 18px;border-radius:10px;display:none;z-index:30;max-width:90vw}
+.toast.err{background:var(--bad)}
+.loading{padding:60px;text-align:center;color:var(--muted)}
+.legacy{font-size:11.5px;color:#7a5b00;background:#fff8dc;border-radius:6px;padding:4px 8px}
+/* ذخیره‌ی خوش‌بینانه: رکوردی که هنوز در شیت تأیید نشده */
+.card.pend{opacity:.7}
+.t-pend{background:var(--bg);color:var(--muted)}
+tr.pend td{color:var(--muted)}
+
+/* ---------- موبایل ---------- */
+@media(max-width:640px){
+  header{position:static;padding:10px 12px}
+  .top{gap:8px}
+  h1{font-size:16px;flex:1 0 100%}
+  .top .spacer{display:none}
+  .top button{flex:1 1 0;min-width:0;padding:9px 6px;font-size:13px;min-height:40px}
+  .kpis{flex-wrap:nowrap;overflow-x:auto;margin:10px -12px 0;padding:0 12px 2px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .kpis::-webkit-scrollbar{display:none}
+  .kpi{flex:none}
+  .banner{margin:10px 12px 0;font-size:12.5px}
+  .bar{padding:10px 12px;gap:6px}
+  .bar input{flex:1 0 100%;min-width:0}
+  .bar select{flex:1 1 calc(50% - 6px);min-width:0}
+  .grid{grid-template-columns:1fr;gap:10px;padding:0 12px 24px}
+  .card{padding:12px}
+  .card h3{font-size:15.5px;padding:2px 0}
+  .row button{padding:9px 4px;min-height:42px;font-size:13px}
+  .modal{padding:0;align-items:flex-end}
+  .box{max-width:none;max-height:94vh;overflow:auto;-webkit-overflow-scrolling:touch;border-radius:16px 16px 0 0;padding:16px 14px}
+  .f2{grid-template-columns:1fr}
+  .nums{grid-template-columns:repeat(2,1fr)}
+  input,select,textarea{font-size:16px;padding:9px 10px}
+  .dateline input{min-width:0}
+  .dateline button{padding:8px 10px;min-height:38px}
+  .foot{position:sticky;bottom:0;background:var(--card);padding:10px 0 4px;margin-top:14px;border-top:1px solid var(--line);z-index:2}
+  .foot button{min-height:42px}
+  .toast{bottom:14px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <h1>FeelHeal — پیگیری فروش</h1>
+    <span class="spacer"></span>
+    <button onclick="openOrdersSheet()">مشاهده شیت سفارش‌ها ↗</button>
+    <button onclick="openOrder(null)">+ ثبت سفارش جدید</button>
+    <button class="pri" onclick="openEdit(null)">+ مشتری جدید</button>
+  </div>
+  <div class="kpis" id="kpis"></div>
+  <div class="sync" id="sync">در حال به‌روزرسانی از شیت…</div>
+</header>
+
+<div class="banner" id="bannerBroken" style="background:var(--badbg);border-color:#f0c9c6;color:var(--bad)"></div>
+<div class="banner" id="banner">
+  <span id="bannerText"></span><span class="spacer"></span>
+  <button onclick="setFilter('fChannel','__none')">نمایش</button>
+</div>
+
+<div class="bar">
+  <input id="q" placeholder="جست‌وجو: نام، شهر، فرد رابط، تلفن…" oninput="renderDeb()">
+  <select id="fStage" onchange="render()"><option value="">همه مراحل</option></select>
+  <select id="fChannel" onchange="render()"><option value="">همه کانال‌ها</option></select>
+  <select id="fFu" onchange="render()">
+    <option value="">همه وضعیت‌های پیگیری</option>
+    <option>عقب‌افتاده</option><option>امروز</option><option>تا ۳ روز آینده</option><option>بعداً</option><option>بدون تاریخ</option>
+  </select>
+  <select id="fColl" onchange="render()">
+    <option value="">همه وضعیت‌های وصول</option>
+    <option value="__late">معوق یا نکول</option>
+    <option>نکول</option><option>معوق</option><option>در جریان</option><option>بدون مطالبه باز</option>
+  </select>
+  <select id="sort" onchange="render()">
+    <option value="next">مرتب: پیگیری نزدیک‌تر</option>
+    <option value="amt">مرتب: مبلغ سالانه</option>
+    <option value="vol">مرتب: حجم سالانه</option>
+    <option value="name">مرتب: نام</option>
+  </select>
+</div>
+
+<div class="grid" id="grid"><div class="loading">در حال بارگذاری…</div></div>
+
+<!-- مودال ویرایش -->
+<div class="modal" id="mEdit" onclick="if(event.target===this)closeM('mEdit')">
+  <div class="box">
+    <h2 id="eTitle">مشتری</h2>
+    <div class="f2">
+      <label class="req"><span>نام مرکز/پزشک</span><input id="eName"></label>
+      <label class="req"><span>نوع کانال خریدار</span><select id="eChannel"></select></label>
+      <label><span>شهر</span><input id="eCity"></label>
+      <label><span>فرد رابط</span><input id="eContact"></label>
+      <label><span>تلفن</span><input id="ePhone" dir="ltr"></label>
+      <label><span>مسیر جذب</span><select id="eSource"></select></label>
+      <label><span>مرحله</span><select id="eStage" onchange="stageHint()"></select></label>
+      <label><span>تاریخ پیگیری بعدی (شمسی)</span>
+        <div class="dateline"><input id="eNext" placeholder="1405/07/10" oninput="dateHint('eNext')">
+          <button type="button" onclick="quickDate('eNext',3)">+۳</button>
+          <button type="button" onclick="quickDate('eNext',7)">+۷</button>
+          <button type="button" onclick="quickDate('eNext',30)">+۳۰</button></div>
+        <span class="hint" id="eNextHint"></span></label>
+    </div>
+    <div class="legacy" id="eLegacy" style="display:none;margin-top:8px"></div>
+    <label style="margin-top:10px"><span>یادداشت جدید</span><textarea id="eNote"></textarea></label>
+    <div id="eExtra"></div>
+    <div class="foot">
+      <button class="pri" id="eSave" onclick="saveEdit()">ذخیره</button>
+      <button onclick="closeM('mEdit')">انصراف</button>
+      <span class="spacer"></span>
+      <button class="danger" id="eDel" onclick="delRec()">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال فالوآپ سریع -->
+<div class="modal" id="mFu" onclick="if(event.target===this)closeM('mFu')">
+  <div class="box">
+    <h2 id="fuTitle">ثبت فالوآپ</h2>
+    <label class="req"><span>شرح فالوآپ</span><textarea id="fuNote"></textarea></label>
+    <div class="f2" style="margin-top:10px">
+      <label><span>تغییر مرحله (اختیاری)</span><select id="fuStage" onchange="fuStageHint()"></select></label>
+      <label><span>پیگیری بعدی (شمسی)</span>
+        <div class="dateline"><input id="fuNext" placeholder="1405/07/10" oninput="dateHint('fuNext')">
+          <button type="button" onclick="quickDate('fuNext',3)">+۳</button>
+          <button type="button" onclick="quickDate('fuNext',7)">+۷</button></div>
+        <span class="hint" id="fuNextHint"></span></label>
+    </div>
+    <div class="foot">
+      <button class="pri" id="fuSave" onclick="saveFu()">ثبت</button>
+      <button onclick="closeM('mFu')">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال ثبت سفارش جدید -->
+<div class="modal" id="mOrder" onclick="if(event.target===this)closeM('mOrder')">
+  <div class="box">
+    <h2 id="oTitle">ثبت سفارش جدید</h2>
+    <div class="f2">
+      <label class="req"><span>مشتری</span><select id="oName"></select></label>
+      <label class="req"><span>نوع خرید</span><select id="oType"></select></label>
+      <label class="req"><span>SKU/محصول</span><select id="oSku"></select></label>
+      <label class="req"><span>تعداد واحد</span><input id="oUnits" type="number" min="0" step="1" dir="ltr"></label>
+      <label><span>ارزش سفارش (تومان)</span><input id="oAmount" type="number" min="0" step="1" dir="ltr"></label>
+      <label><span>تاریخ سفارش (شمسی)</span>
+        <div class="dateline"><input id="oDate" placeholder="1405/07/10" oninput="dateHint('oDate')">
+          <button type="button" onclick="quickDate('oDate',0)">امروز</button></div>
+        <span class="hint" id="oDateHint"></span></label>
+      <label><span>تاریخ سررسید پرداخت (شمسی، اختیاری)</span>
+        <div class="dateline"><input id="oDue" placeholder="1405/08/10" oninput="dateHint('oDue')">
+          <button type="button" onclick="quickDate('oDue',30)">+۳۰</button></div>
+        <span class="hint" id="oDueHint"></span></label>
+      <label><span>تاریخ پرداخت واقعی (شمسی، اگر پرداخت شده)</span>
+        <div class="dateline"><input id="oPaid" placeholder="1405/07/10" oninput="dateHint('oPaid')">
+          <button type="button" onclick="quickDate('oPaid',0)">امروز</button></div>
+        <span class="hint" id="oPaidHint"></span></label>
+      <label style="flex-direction:row;align-items:center;gap:8px"><input id="oDefault" type="checkbox" style="width:auto"><span>نکول شده</span></label>
+    </div>
+    <div class="foot">
+      <button class="pri" id="oSave" onclick="saveOrderForm()">ثبت سفارش</button>
+      <button onclick="closeM('mOrder')">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- تقویم جلالی (همان کد Code.gs؛ Math.trunc) ----------
+var JBREAKS=[-61,9,38,199,426,686,756,818,1111,1181,1210,1635,2060,2097,2192,2262,2324,2394,2456,3178];
+function jdiv_(a,b){return Math.trunc(a/b);}
+function jmod_(a,b){return a-Math.trunc(a/b)*b;}
+function jalCal_(jy){var bl=JBREAKS.length,gy=jy+621,leapJ=-14,jp=JBREAKS[0],jm,jump=0,leap,leapG,march,n,i;
+for(i=1;i<bl;i++){jm=JBREAKS[i];jump=jm-jp;if(jy<jm)break;leapJ=leapJ+jdiv_(jump,33)*8+jdiv_(jmod_(jump,33),4);jp=jm;}
+n=jy-jp;leapJ=leapJ+jdiv_(n,33)*8+jdiv_(jmod_(n,33)+3,4);if(jmod_(jump,33)===4&&jump-n===4)leapJ+=1;
+leapG=jdiv_(gy,4)-jdiv_((jdiv_(gy,100)+1)*3,4)-150;march=20+leapJ-leapG;
+if(jump-n<6)n=n-jump+jdiv_(jump+4,33)*33;leap=jmod_(jmod_(n+1,33)-1,4);if(leap===-1)leap=4;
+return{leap:leap,gy:gy,march:march};}
+function g2d_(gy,gm,gd){var d=jdiv_((gy+jdiv_(gm-8,6)+100100)*1461,4)+jdiv_(153*jmod_(gm+9,12)+2,5)+gd-34840408;
+return d-jdiv_(jdiv_(gy+100100+jdiv_(gm-8,6),100)*3,4)+752;}
+function d2g_(jdn){var j=4*jdn+139361631;j=j+jdiv_(jdiv_(4*jdn+183187720,146097)*3,4)*4-3908;
+var i=jdiv_(jmod_(j,1461),4)*5+308;var gd=jdiv_(jmod_(i,153),5)+1;var gm=jmod_(jdiv_(i,153),12)+1;
+var gy=jdiv_(j,1461)-100100+jdiv_(8-gm,6);return{gy:gy,gm:gm,gd:gd};}
+function j2d_(jy,jm,jd){var r=jalCal_(jy);return g2d_(r.gy,3,r.march)+(jm-1)*31-jdiv_(jm,7)*(jm-7)+jd-1;}
+function d2j_(jdn){var gy=d2g_(jdn).gy,jy=gy-621,r=jalCal_(jy),jdn1f=g2d_(gy,3,r.march),jd,jm,k;k=jdn-jdn1f;
+if(k>=0){if(k<=185){jm=1+jdiv_(k,31);jd=jmod_(k,31)+1;return{jy:jy,jm:jm,jd:jd};}k-=186;}
+else{jy-=1;k+=179;if(r.leap===1)k+=1;}jm=7+jdiv_(k,30);jd=jmod_(k,30)+1;return{jy:jy,jm:jm,jd:jd};}
+function toJalaali_(gy,gm,gd){return d2j_(g2d_(gy,gm,gd));}
+function toGregorian_(jy,jm,jd){return d2g_(j2d_(jy,jm,jd));}
+function isValidJalaali_(jy,jm,jd){if(jy<1300||jy>1500||jm<1||jm>12||jd<1)return false;
+var len=jm<=6?31:jm<=11?30:(jalCal_(jy).leap===0?30:29);return jd<=len;}
+
+// ---------- ابزار تاریخ ----------
+var pad=function(n){return('0'+n).slice(-2);};
+var MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+function faNum(s){return String(s).replace(/\d/g,function(d){return'۰۱۲۳۴۵۶۷۸۹'[d];});}
+function enNum(s){return String(s).replace(/[۰-۹]/g,function(c){return'۰۱۲۳۴۵۶۷۸۹'.indexOf(c);}).replace(/[٠-٩]/g,function(c){return'٠١٢٣٤٥٦٧٨٩'.indexOf(c);});}
+function isoToJ(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');if(!m)return'';var j=toJalaali_(+m[1],+m[2],+m[3]);return j.jy+'/'+pad(j.jm)+'/'+pad(j.jd);}
+function isoToJLong(iso){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||'');if(!m)return'—';var j=toJalaali_(+m[1],+m[2],+m[3]);return faNum(j.jd)+' '+MONTHS[j.jm-1]+' '+faNum(j.jy);}
+function jToIso(s){var m=/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/.exec(enNum(String(s).trim()).replace(/[-.]/g,'/'));
+  if(!m)return null;var y=+m[1],mo=+m[2],d=+m[3];if(!isValidJalaali_(y,mo,d))return null;
+  var g=toGregorian_(y,mo,d);return g.gy+'-'+pad(g.gm)+'-'+pad(g.gd);}
+function noteDate(d){d=String(d||'');if(/^\d{4}-\d{2}-\d{2}/.test(d))return isoToJLong(d.slice(0,10));return esc(faNum(d));}
+function addDaysIso(iso,n){var p=iso.split('-');var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n));
+  return d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate());}
+
+// ---------- وضعیت ----------
+// inflight/base/best/after: ذخیره‌ی خوش‌بینانه (پایین‌تر) | form: شمارنده‌ی هر مودال تا بدانیم فرم دست‌نخورده مانده یا نه
+var S={data:null,editing:null,fuRec:null,orderRec:null,loading:false,
+  inflight:0,base:null,best:null,after:[],mutSeq:0,form:{mEdit:0,mFu:0,mOrder:0}};
+function money(n){n=Number(n)||0;return faNum(n.toLocaleString('en-US'));}
+function num(n){return faNum(Number(n)||0);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function toast(msg,err){var t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(err?' err':'');t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none';},err?6000:2600);}
+
+// کش محلی مرورگر: نمایش فوری آخرین داده‌ی شناخته‌شده، سپس به‌روزرسانی از شیت
+var CACHE_KEY='fh_cache_v22';
+function cacheGet(){try{var s=localStorage.getItem(CACHE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}}
+function cachePut(d){try{localStorage.setItem(CACHE_KEY,JSON.stringify(d));}catch(e){}}
+function syncUi(on){S.loading=on;statusUi();}
+function statusUi(){var el=document.getElementById('sync');if(!el)return;
+  if(S.inflight>0){el.textContent='⏳ در حال ذخیره در شیت…';el.style.display='block';}
+  else if(S.loading){el.textContent='در حال به‌روزرسانی از شیت…';el.style.display='block';}
+  else el.style.display='none';}
+
+function loadErr(msg){
+  var g=document.getElementById('grid');
+  if(S.data&&S.data.customers)return;
+  g.innerHTML='<div class="empty" style="color:var(--bad)"><b>بارگذاری داده ناموفق بود</b><br><span dir="ltr" style="display:inline-block;margin:8px 0;font-size:12px">'+esc(msg)+'</span><br><button class="pri" onclick="location.reload()">تلاش مجدد</button></div>';
+}
+// ok(r) پاسخ موفق؛ fail(m) پیام خطا (اگر نباشد: پیام عمومی). زمان رفت‌وبرگشت و زمان مراحل سرور در کنسول مرورگر ثبت می‌شود.
+function call(fn,args,ok,fail){
+  var onErr=function(m){if(fail){fail(m);return;}syncUi(false);loadErr(m);toast(m,true);};
+  if(typeof google==='undefined'||!google.script||!google.script.run){onErr('این صفحه باید از آدرس Web App (script.google.com/…/exec) باز شود، نه به‌صورت فایل یا میزبان دیگر.');return;}
+  var t0=Date.now();
+  google.script.run.withSuccessHandler(function(r){
+    try{if(typeof r==='string')r=JSON.parse(r);if(r==null)throw new Error('سرور مقدار خالی برگرداند. در Apps Script مطمئن شوید فقط یک فایل Code با تابع getData وجود دارد و New version را Deploy کرده‌اید.');}
+    catch(e){onErr('خطای نمایش: '+(e&&e.message?e.message:e));return;}
+    try{console.log('[FH] '+fn+': '+(Date.now()-t0)+'ms رفت‌وبرگشت'+(r._ms?' | سرور: '+JSON.stringify(r._ms):' | از کش سرور'));}catch(e){}
+    ok(r);
+  }).withFailureHandler(function(e){onErr(e&&e.message?e.message:String(e));})[fn].apply(null,args||[]);
+}
+
+function load(){
+  var c=cacheGet();
+  if(c&&c.customers&&c.meta){S.data=c;init();render();syncUi(true);}
+  var seq=S.mutSeq;
+  call('getData',[],function(d){syncUi(false);
+    if(S.inflight>0||S.mutSeq!==seq)return;   // پاسخ ذخیره‌ها تازه‌تر از این است
+    S.data=d;cachePut(d);init();render();});
+  setTimeout(function(){if(!S.data)loadErr('پاسخی از سرور دریافت نشد (بیش از ۳۰ ثانیه). اگر «Code» را تازه جایگزین کرده‌اید، Deploy ← Manage deployments ← New version را بزنید.');},30000);
+}
+
+// ---------- ذخیره‌ی خوش‌بینانه ----------
+// تغییر بلافاصله روی صفحه اعمال می‌شود و درخواست در پس‌زمینه به سرور می‌رود. هر پاسخ موفق کل داده‌ی تازه را دارد.
+// تا وقتی درخواستی در جریان است، صفحه حالت محلی را نشان می‌دهد. وقتی همه برگشتند:
+//   - اگر حداقل یکی موفق بود → جدیدترین پاسخ سرور (بزرگ‌ترین _stamp؛ شامل همه‌ی ذخیره‌های موفق) جایگزین می‌شود
+//   - اگر همه ناموفق بودند → داده‌ی پیش از اولین تغییر برمی‌گردد
+// پس تغییر ناموفق هیچ‌وقت روی صفحه نمی‌ماند، و فرم آن (اگر دست نخورده) دوباره با همان ورودی باز می‌شود.
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function mutate(fn,args,local,o){
+  o=o||{};
+  if(S.inflight===0){S.base=clone(S.data);S.best=null;}
+  S.inflight++;S.mutSeq++;
+  try{local();}catch(e){console.error(e);}
+  render();syncDetail();statusUi();
+  call(fn,args,function(d){
+    if(!S.best||(d._stamp||0)>=(S.best._stamp||0))S.best=d;
+    if(o.ok)o.ok(d);
+    settle();
+  },function(m){
+    toast(m,true);
+    if(o.fail)S.after.push(function(){o.fail(m);});   // بعد از برگشت همه‌ی درخواست‌ها، روی داده‌ی درست
+    settle();
+  });
+}
+function settle(){
+  S.inflight=Math.max(0,S.inflight-1);
+  if(S.inflight===0){
+    if(S.best){S.data=S.best;cachePut(S.data);init();}
+    else if(S.base)S.data=S.base;
+    S.best=null;S.base=null;
+    render();syncDetail();
+    var a=S.after;S.after=[];a.forEach(function(f){try{f();}catch(e){console.error(e);}});
+  }
+  statusUi();
+}
+// پیدا کردن نسخه‌ی فعلی یک مشتری در S.data (پس از جایگزینی داده، شیء قدیمی دیگر معتبر نیست)
+function findCust(ref){if(!ref||!S.data)return null;var L=S.data.customers,i;
+  for(i=0;i<L.length;i++)if(ref.row&&L[i].row===ref.row&&L[i].name===ref.name)return L[i];
+  for(i=0;i<L.length;i++)if(L[i].name===ref.name)return L[i];
+  if(ref.row)for(i=0;i<L.length;i++)if(L[i].row===ref.row)return L[i];
+  return null;}
+function isOn(id){return document.getElementById(id).classList.contains('on');}
+function syncDetail(){if(!S.editing||!isOn('mEdit'))return;var c=findCust(S.editing);
+  if(c){S.editing=c;document.getElementById('eExtra').innerHTML=extraHtml(c);}}
+function pendingMsg(){toast('ذخیره‌ی قبلی این مشتری هنوز در جریان است — چند لحظه صبر کنید.',true);}
+// همان منطق سرور/فرمول شیت، برای نمایش فوری
+function normKey(s){return String(s==null?'':s).replace(/[‌‎‏\s]/g,'').replace(/ي/g,'ی').replace(/ك/g,'ک').replace(/[\/\\\-_.()]/g,'');}
+function badName(n){return /[*?~]/.test(n)||/^[=<>]/.test(n);}
+function fuOf(iso){var t=S.data.meta.today;if(!iso)return'بدون تاریخ';if(!/^\d{4}-\d{2}-\d{2}$/.test(iso))return'تاریخ نامعتبر';
+  return iso<t?'عقب‌افتاده':iso===t?'امروز':iso<=addDaysIso(t,3)?'تا ۳ روز آینده':'بعداً';}
+function actOf(stage){var r=refOf(stage);return r?r.action:'';}
+function statusOf(rec,today){if(rec.type!=='خرید')return'';if(rec.paid)return 2;if(rec.defaulted)return 4;if(rec.due&&today>rec.due)return 3;return 1;}
+function thrOf(v,c){var s=S.data.settings,th=Number(s.threshold),mo=Number(s.minOrders);
+  return v>=th?(c>mo?'✅ تعهد حجمی واقعی':'⚠️ خرید یک‌باره حجیم — نیازمند پیگیری تکرار'):'زیر آستانه';}
+function blankCust(){return{row:null,name:'',typeOld:'',city:'',contact:'',phone:'',source:'',stage:'',stageDate:'',nextDate:'',
+  fuStatus:'',action:'',purchases:0,notes:[],channel:'',annVol:0,annAmt:0,annCnt:0,qVol:0,volBCD:0,volBCW:0,volBCP:0,
+  thr:thrOf(0,0),coll:'بدون مطالبه باز'};}
+function init(){
+  var d=S.data;
+  fill('fStage',d.ref.map(function(r){return r.stage;}),'همه مراحل');
+  fill('fChannel',d.meta.channels,'همه کانال‌ها',[['__none','⚠️ بدون نوع کانال']]);
+  fill('eChannel',d.meta.channels,'— انتخاب کنید —');
+  fill('eSource',d.meta.sources,'—');
+  fill('eStage',d.ref.map(function(r){return r.stage;}));
+  fill('fuStage',d.ref.map(function(r){return r.stage;}),'— بدون تغییر —');
+  fill('oName',d.meta.customerNames,'— انتخاب کنید —');
+  fill('oType',d.meta.orderTypes);
+  fill('oSku',d.meta.skus);
+}
+function fill(id,items,blank,extra){var el=document.getElementById(id),cur=el.value,h='';
+  if(blank!==undefined)h+='<option value="">'+esc(blank)+'</option>';
+  (extra||[]).forEach(function(x){h+='<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>';});
+  items.forEach(function(x){h+='<option>'+esc(x)+'</option>';});el.innerHTML=h;el.value=cur;}
+function setFilter(id,v){document.getElementById(id).value=v;render();}
+
+function fuTag(s){var c={'عقب‌افتاده':'t-bad','امروز':'t-warn','تا ۳ روز آینده':'t-info','بعداً':'','بدون تاریخ':'t-need','تاریخ نامعتبر':'t-bad'}[s];return s?'<span class="tag '+(c||'')+'">'+esc(s)+'</span>':'';}
+function collTag(s){var c={'نکول':'t-bad','معوق':'t-warn','در جریان':'t-info','بدون مطالبه باز':'t-ok'}[s];return s?'<span class="tag '+(c||'')+'">وصول: '+esc(s)+'</span>':'';}
+function thrTag(s){if(!s)return'';var c=s.indexOf('✅')===0?'t-ok':s.indexOf('⚠️')===0?'t-warn':'';return'<span class="tag '+c+'">'+esc(s.replace(' — نیازمند پیگیری تکرار',''))+'</span>';}
+
+var _rt=null;
+function renderDeb(){clearTimeout(_rt);_rt=setTimeout(render,150);}
+
+function render(){
+  var d=S.data;if(!d)return;var list=d.customers.slice();
+  var q=document.getElementById('q').value.trim().toLowerCase();
+  var fs=document.getElementById('fStage').value,fc=document.getElementById('fChannel').value;
+  var ff=document.getElementById('fFu').value,fl=document.getElementById('fColl').value,so=document.getElementById('sort').value;
+  var bb=document.getElementById('bannerBroken'),br=d.broken||[],wr=d.warnings||[],bm=[];
+  if(br.length)bm.push('⛔ فرمول این ستون‌ها خطا می‌دهد و مقادیرش نادرست است: '+br.join('، ')+' — در شیت، سلول‌های زیر عنوان این ستون‌ها را خالی کنید یا منوی FeelHeal ← «راه‌اندازی / ترمیم ساختار» را اجرا کنید.');
+  wr.forEach(function(w){bm.push('⚠️ '+w);});
+  bb.style.display=bm.length?'flex':'none';bb.textContent=bm.join('  |  ');
+  var noCh=d.customers.filter(function(c){return!c.channel;}).length;
+  var b=document.getElementById('banner');b.style.display=noCh?'flex':'none';
+  document.getElementById('bannerText').textContent=faNum(noCh)+' مشتری هنوز «نوع کانال خریدار» ندارند (سایر / داروخانه‌وفروشگاه / نامشخص) — بازبینی دستی لازم است.';
+  list=list.filter(function(c){
+    if(q&&[c.name,c.city,c.contact,c.phone].join(' ').toLowerCase().indexOf(q)<0)return false;
+    if(fs&&c.stage!==fs)return false;
+    if(fc==='__none'&&c.channel)return false;
+    if(fc&&fc!=='__none'&&c.channel!==fc)return false;
+    if(ff&&c.fuStatus!==ff)return false;
+    if(fl==='__late'&&c.coll!=='معوق'&&c.coll!=='نکول')return false;
+    if(fl&&fl!=='__late'&&c.coll!==fl)return false;return true;});
+  list.sort(function(a,b){
+    if(so==='amt')return(Number(b.annAmt)||0)-(Number(a.annAmt)||0);
+    if(so==='vol')return(Number(b.annVol)||0)-(Number(a.annVol)||0);
+    if(so==='name')return a.name.localeCompare(b.name,'fa');
+    return(a.nextDate||'9999')<(b.nextDate||'9999')?-1:(a.nextDate||'9999')>(b.nextDate||'9999')?1:0;});
+  kpis();
+  var g=document.getElementById('grid');
+  if(!list.length){g.innerHTML='<div class="empty">موردی پیدا نشد.</div>';return;}
+  var idx=new Map();d.customers.forEach(function(c,k){idx.set(c,k);});
+  g.innerHTML=list.map(function(c){var i=idx.get(c);return''+
+    '<div class="card'+(c._pending?' pend':'')+'"><h3 onclick="openEdit('+i+')">'+esc(c.name)+'</h3>'+
+    '<div class="sub">'+esc([c.city,c.contact,c.phone].filter(Boolean).join(' · ')||'—')+'</div>'+
+    '<div class="tags">'+(c.channel?'<span class="tag">'+esc(c.channel)+'</span>':'<span class="tag t-need">بدون نوع کانال</span>')+
+      '<span class="tag">'+esc(c.stage||'—')+'</span>'+fuTag(c.fuStatus)+(c._pending?'<span class="tag t-pend">⏳ در حال ذخیره</span>':'')+'</div>'+
+    '<div class="sub">پیگیری بعدی: '+isoToJLong(c.nextDate)+'</div>'+
+    (c.action?'<div class="act">'+esc(c.action)+'</div>':'')+
+    '<div class="tags">'+thrTag(c.thr)+collTag(c.coll)+'</div>'+
+    '<div class="row"><button onclick="openFu('+i+')">ثبت فالوآپ</button><button onclick="openOrder('+i+')">ثبت سفارش</button><button onclick="openEdit('+i+')">جزئیات</button></div></div>';}).join('');
+}
+function kpis(){
+  var c=S.data.customers;
+  var over=c.filter(function(x){return x.fuStatus==='عقب‌افتاده';}).length;
+  var tod=c.filter(function(x){return x.fuStatus==='امروز';}).length;
+  var amt=c.reduce(function(s,x){return s+(Number(x.annAmt)||0);},0);
+  var late=c.filter(function(x){return x.coll==='معوق'||x.coll==='نکول';}).length;
+  var real=c.filter(function(x){return String(x.thr).indexOf('✅')===0;}).length;
+  var k=[['عقب‌افتاده',over,"setFilter('fFu','عقب‌افتاده')",over>0],['پیگیری امروز',tod,"setFilter('fFu','امروز')",false],
+    ['مبلغ خالص سال (تومان)',money(amt),"setFilter('sort','amt')",false],['مطالبات معوق/نکول',late,"setFilter('fColl','__late')",late>0],
+    ['تعهد حجمی واقعی',real,'',false],['کل مشتریان',c.length,"resetFilters()",false]];
+  document.getElementById('kpis').innerHTML=k.map(function(x){return'<div class="kpi'+(x[3]?' hot':'')+'" onclick="'+x[2]+'"><span>'+x[0]+'</span><b>'+(typeof x[1]==='number'?num(x[1]):x[1])+'</b></div>';}).join('');
+}
+function resetFilters(){['q','fStage','fChannel','fFu','fColl'].forEach(function(id){document.getElementById(id).value='';});render();}
+
+// ---------- مودال‌ها ----------
+function openM(id){document.getElementById(id).classList.add('on');}
+function closeM(id){document.getElementById(id).classList.remove('on');}
+function refOf(stage){return S.data.ref.filter(function(r){return r.stage===stage;})[0];}
+function dateHint(id){var v=document.getElementById(id).value.trim(),h=document.getElementById(id+'Hint');
+  if(!v){h.textContent='خالی = خودکار بر اساس مرحله';h.className='hint';return;}
+  var iso=jToIso(v);h.textContent=iso?isoToJLong(iso):'تاریخ نامعتبر — قالب 1405/07/10';h.className='hint'+(iso?'':' err');}
+function quickDate(id,n){document.getElementById(id).value=isoToJ(addDaysIso(S.data.meta.today,n));dateHint(id);}
+
+function openEdit(i){
+  var c=i===null?null:S.data.customers[i];
+  if(c&&c._pending){pendingMsg();return;}
+  S.editing=c;S.form.mEdit++;
+  document.getElementById('eTitle').textContent=c?c.name:'مشتری جدید';
+  document.getElementById('eName').value=c?c.name:'';
+  document.getElementById('eChannel').value=c?(c.channel||''):'';
+  document.getElementById('eCity').value=c?c.city:'';
+  document.getElementById('eContact').value=c?c.contact:'';
+  document.getElementById('ePhone').value=c?c.phone:'';
+  document.getElementById('eSource').value=c?(c.source||''):'';
+  document.getElementById('eStage').value=c?(c.stage||S.data.ref[0].stage):S.data.ref[0].stage;
+  document.getElementById('eNext').value=c?isoToJ(c.nextDate):'';
+  document.getElementById('eNote').value='';
+  document.getElementById('eDel').style.display=c?'':'none';
+  var lg=document.getElementById('eLegacy');
+  if(c&&!c.channel){lg.style.display='block';lg.textContent='نوع قدیم این رکورد: «'+(c.typeOld||'خالی')+'» — لطفاً «نوع کانال خریدار» را تعیین کنید.';}else lg.style.display='none';
+  dateHint('eNext');
+  document.getElementById('eExtra').innerHTML=c?extraHtml(c):'';
+  openM('mEdit');
+}
+function stageHint(){var c=S.editing,inp=document.getElementById('eNext'),r=refOf(document.getElementById('eStage').value);
+  if(!c||!r||document.getElementById('eStage').value===c.stage){dateHint('eNext');return;}
+  var auto=addDaysIso(S.data.meta.today,r.days);
+  if(!inp.value||jToIso(inp.value)===c.nextDate){inp.value=isoToJ(auto);dateHint('eNext');
+    document.getElementById('eNextHint').textContent=isoToJLong(auto)+' (بازه مرحله جدید — قابل تغییر)';}}
+function extraHtml(c){
+  var orders=S.data.orders.filter(function(o){return o.name===c.name;}).sort(function(a,b){return a.date<b.date?1:-1;});
+  var st={1:'در جریان',2:'پرداخت‌شده',3:'معوق',4:'نکول'};
+  var h='<div class="sec"><h4>خلاصه سال جاری</h4><div class="nums">'+
+    '<div>حجم خالص<b>'+num(c.annVol)+'</b></div><div>مبلغ خالص<b>'+money(c.annAmt)+'</b></div><div>تعداد سفارش خرید<b>'+num(c.annCnt)+'</b></div>'+
+    '<div>BCD<b>'+num(c.volBCD)+'</b></div><div>BCW<b>'+num(c.volBCW)+'</b></div><div>BCP<b>'+num(c.volBCP)+'</b></div></div>'+
+    '<div class="tags" style="margin-top:8px">'+thrTag(c.thr)+collTag(c.coll)+'<span class="tag">ورود به مرحله: '+isoToJLong(c.stageDate)+'</span></div></div>';
+  h+='<div class="sec"><h4>سفارش‌ها ('+num(orders.length)+') <button style="padding:3px 9px;font-size:11.5px" onclick="openOrder('+S.data.customers.indexOf(c)+')">+ سفارش جدید</button></h4>';
+  if(orders.length){h+='<div class="tw"><table><tr><th>#</th><th>کد فاکتور</th><th>تاریخ</th><th>نوع</th><th>SKU</th><th>تعداد</th><th>مبلغ</th><th>سررسید</th><th>وضعیت</th></tr>'+
+    orders.map(function(o){return'<tr'+(o._pending?' class="pend"':'')+'><td>'+(o._pending?'…':num(o.nth))+'</td><td dir="ltr">'+(o._pending?'⏳':esc(o.id||'—'))+'</td><td>'+faNum(isoToJ(o.date))+'</td><td>'+esc(o.type)+'</td><td dir="ltr">'+esc(o.sku)+'</td><td>'+num(o.units)+'</td><td>'+money(o.amount)+'</td><td>'+faNum(isoToJ(o.due))+'</td><td>'+esc(st[o.status]||'')+'</td></tr>';}).join('')+'</table></div>';}
+  else h+='<div class="hint">سفارشی ثبت نشده.</div>';
+  h+='</div><div class="sec"><h4>یادداشت‌ها</h4><div class="notes">'+
+    (c.notes.length?c.notes.slice().reverse().map(function(n){return'<div class="note"><i>'+noteDate(n.date)+'</i>'+esc(n.text)+'</div>';}).join(''):'<div class="hint">یادداشتی نیست.</div>')+'</div></div>';
+  return h;
+}
+function saveEdit(){
+  var c=S.editing,nextRaw=document.getElementById('eNext').value.trim(),nextIso='';
+  if(nextRaw){nextIso=jToIso(nextRaw);if(!nextIso){toast('تاریخ پیگیری نامعتبر است.',true);return;}}
+  var rec={name:document.getElementById('eName').value.trim(),channel:document.getElementById('eChannel').value,
+    city:document.getElementById('eCity').value,contact:document.getElementById('eContact').value,
+    phone:document.getElementById('ePhone').value,source:document.getElementById('eSource').value,
+    stage:document.getElementById('eStage').value,newNote:document.getElementById('eNote').value};
+  if(!rec.name){toast('نام الزامی است.',true);return;}
+  if(!rec.channel){toast('«نوع کانال خریدار» را انتخاب کنید.',true);return;}
+  if(badName(rec.name)){toast('نام نباید شامل * ? ~ باشد یا با = < > شروع شود.',true);return;}
+  var self=c?findCust({row:c.row,name:c.name}):null;   // S.editing ممکن است شیء قدیمی باشد (داده از آن موقع تازه شده)
+  if(S.data.customers.some(function(x){return x!==self&&normKey(x.name)===normKey(rec.name);})){toast('مشتری دیگری با همین نام وجود دارد.',true);return;}
+  if(c){rec.row=c.row;rec.originalName=c.name;}
+  if(nextIso&&(!c||nextIso!==c.nextDate))rec.nextDate=nextIso;
+  var orig=c?{row:c.row,name:c.name}:null,tok=++S.form.mEdit;
+  closeM('mEdit');toast('ذخیره شد');
+  mutate('saveRecord',[rec],function(){
+    // همان منطق saveRecord سرور
+    var d=S.data,today=d.meta.today,rep=d.meta.repeatStage,cur=orig?findCust(orig):null;
+    if(orig&&!cur)return;
+    var oldStage=cur?String(cur.stage||''):'';
+    var stage=rec.stage||oldStage||(d.ref[0]?d.ref[0].stage:'');
+    var changed=!cur||stage!==oldStage;
+    var p={name:rec.name,channel:rec.channel,city:rec.city.trim(),contact:rec.contact.trim(),phone:rec.phone.trim(),
+      source:rec.source.trim(),stage:stage,_pending:true};
+    if(changed){p.stageDate=today;if(cur&&stage===rep)p.purchases=(Number(cur.purchases)||0)+1;}
+    if(!cur)p.purchases=stage===rep?1:0;
+    if(rec.nextDate)p.nextDate=rec.nextDate;
+    else if(changed){var r=refOf(stage);p.nextDate=addDaysIso(today,r?r.days:7);}
+    var notes=cur?cur.notes.slice():[];
+    if(rec.newNote.trim())notes.push({date:today,text:rec.newNote.trim()});
+    p.notes=notes;
+    var nc=Object.assign(blankCust(),cur||{},p);
+    nc.fuStatus=fuOf(nc.nextDate);nc.action=actOf(nc.stage);
+    if(cur){
+      d.customers[d.customers.indexOf(cur)]=nc;
+      if(cur.name!==nc.name){
+        d.orders.forEach(function(o){if(o.name===cur.name)o.name=nc.name;});
+        var ci=d.meta.customerNames.indexOf(cur.name);if(ci>=0)d.meta.customerNames[ci]=nc.name;}
+    }else d.customers.push(nc);
+  },{fail:function(){
+    // فرم دست‌نخورده است (از آن موقع باز نشده) → با همان ورودی کاربر دوباره باز شود
+    if(S.form.mEdit!==tok)return;
+    S.editing=orig?findCust(orig):null;
+    if(orig&&!S.editing)return;
+    document.getElementById('eExtra').innerHTML=S.editing?extraHtml(S.editing):'';
+    openM('mEdit');}});
+}
+function delRec(){var c=S.editing;if(!c||!confirm('«'+c.name+'» حذف شود؟'))return;
+  if(S.data.orders.some(function(o){return o.name===c.name;})){toast('این مشتری سفارش ثبت‌شده دارد؛ حذف او سفارش‌ها را بی‌صاحب می‌کند. به‌جای حذف، مرحله را «غیرفعال/از دست رفته» کنید.',true);return;}
+  var orig={row:c.row,name:c.name};
+  closeM('mEdit');toast('حذف شد');
+  mutate('deleteRecord',[c.row,c.name],function(){
+    var cur=findCust(orig);if(!cur)return;
+    S.data.customers.splice(S.data.customers.indexOf(cur),1);
+    var ci=S.data.meta.customerNames.indexOf(cur.name);if(ci>=0)S.data.meta.customerNames.splice(ci,1);
+  });}
+
+function openFu(i){var c=S.data.customers[i];
+  if(c._pending){pendingMsg();return;}
+  S.fuRec=c;S.form.mFu++;
+  document.getElementById('fuTitle').textContent='فالوآپ — '+c.name;
+  ['fuNote','fuNext','fuStage'].forEach(function(id){document.getElementById(id).value='';});
+  fuStageHint();openM('mFu');}
+function fuStageHint(){var c=S.fuRec,st=document.getElementById('fuStage').value||c.stage,r=refOf(st);
+  document.getElementById('fuNext').placeholder=r?isoToJ(addDaysIso(S.data.meta.today,r.days)):'1405/07/10';
+  var h=document.getElementById('fuNextHint');if(!document.getElementById('fuNext').value){h.className='hint';h.textContent=r?'خالی = '+isoToJLong(addDaysIso(S.data.meta.today,r.days))+' (بازه مرحله)':'';}}
+function saveFu(){
+  var c=S.fuRec,note=document.getElementById('fuNote').value.trim();
+  if(!note){toast('شرح فالوآپ را بنویسید.',true);return;}
+  if(!c.channel){toast('این مشتری «نوع کانال خریدار» ندارد؛ ابتدا از «جزئیات» تعیین کنید.',true);return;}
+  var st=document.getElementById('fuStage').value,raw=document.getElementById('fuNext').value.trim(),iso;
+  if(raw){iso=jToIso(raw);if(!iso){toast('تاریخ نامعتبر است.',true);return;}}
+  else{var r=refOf(st||c.stage);iso=addDaysIso(S.data.meta.today,r?r.days:7);}
+  var rec={row:c.row,originalName:c.name,newNote:note,nextDate:iso};
+  if(st&&st!==c.stage)rec.stage=st;
+  var orig={row:c.row,name:c.name},tok=++S.form.mFu;
+  closeM('mFu');toast('فالوآپ ثبت شد');
+  mutate('saveRecord',[rec],function(){
+    var d=S.data,today=d.meta.today,cur=findCust(orig);if(!cur)return;
+    var p={_pending:true,notes:cur.notes.concat([{date:today,text:note}]),nextDate:iso};
+    if(rec.stage){p.stage=rec.stage;p.stageDate=today;if(rec.stage===d.meta.repeatStage)p.purchases=(Number(cur.purchases)||0)+1;}
+    var nc=Object.assign({},cur,p);nc.fuStatus=fuOf(nc.nextDate);nc.action=actOf(nc.stage);
+    d.customers[d.customers.indexOf(cur)]=nc;
+  },{fail:function(){
+    if(S.form.mFu!==tok)return;
+    var cur=findCust(orig);if(!cur)return;
+    S.fuRec=cur;openM('mFu');}});
+}
+function openOrder(i){
+  var c=(i===null||i===undefined)?null:S.data.customers[i];
+  if(c&&c._pending){pendingMsg();return;}
+  S.orderRec=c;S.form.mOrder++;
+  document.getElementById('oTitle').textContent=c?'ثبت سفارش — '+c.name:'ثبت سفارش جدید';
+  var sel=document.getElementById('oName');fill('oName',S.data.meta.customerNames,'— انتخاب کنید —');
+  sel.value=c?c.name:'';sel.disabled=!!c;
+  document.getElementById('oType').value=S.data.meta.orderTypes[0]||'';
+  document.getElementById('oSku').value=S.data.meta.skus[0]||'';
+  document.getElementById('oUnits').value='';document.getElementById('oAmount').value='';
+  document.getElementById('oDate').value=isoToJ(S.data.meta.today);
+  document.getElementById('oDue').value='';document.getElementById('oPaid').value='';
+  document.getElementById('oDefault').checked=false;
+  ['oDate','oDue','oPaid'].forEach(dateHint);
+  openM('mOrder');
+}
+function saveOrderForm(){
+  var name=document.getElementById('oName').value;
+  if(!name){toast('مشتری را انتخاب کنید.',true);return;}
+  var type=document.getElementById('oType').value,sku=document.getElementById('oSku').value;
+  var units=document.getElementById('oUnits').value,amount=document.getElementById('oAmount').value;
+  if(!(Number(units)>0)){toast('تعداد واحد باید عددی بزرگ‌تر از صفر باشد.',true);return;}
+  if(amount!==''&&Number(amount)<0){toast('ارزش سفارش نمی‌تواند منفی باشد.',true);return;}
+  function j(id,label){var v=document.getElementById(id).value.trim();if(!v)return{ok:true,iso:''};
+    var iso=jToIso(v);if(!iso){toast(label+' نامعتبر است.',true);return{ok:false};}return{ok:true,iso:iso};}
+  var d=j('oDate','تاریخ سفارش');if(!d.ok)return;
+  var due=j('oDue','تاریخ سررسید پرداخت');if(!due.ok)return;
+  var paid=j('oPaid','تاریخ پرداخت واقعی');if(!paid.ok)return;
+  var cu=S.data.customers.filter(function(x){return x.name===name;})[0];
+  if(!cu){toast('مشتری پیدا نشد — صفحه را تازه کنید.',true);return;}
+  if(cu._pending){pendingMsg();return;}
+  var rec={name:name,type:type,sku:sku,units:Number(units),amount:amount===''?0:Number(amount),
+    date:d.iso,due:due.iso,paid:paid.iso,defaulted:document.getElementById('oDefault').checked};
+  var origRec=S.orderRec?{row:S.orderRec.row,name:S.orderRec.name}:null,tok=++S.form.mOrder;
+  closeM('mOrder');toast('سفارش ثبت شد — در انتظار کد فاکتور…');
+  mutate('saveOrder',[rec],function(){
+    var today=S.data.meta.today;
+    // جمع‌های سالانه و «چندمین سفارش» پس از پاسخ سرور اصلاح می‌شوند
+    S.data.orders.push({id:'',name:name,date:rec.date||today,type:type,sku:sku,units:rec.units,amount:rec.amount,
+      due:rec.due,paid:rec.paid,status:statusOf(rec,today),nth:'',_pending:true});
+  },{ok:function(r){if(r.result&&r.result.orderId)toast('سفارش ثبت شد — کد فاکتور: '+r.result.orderId);},
+     fail:function(){
+       if(S.form.mOrder!==tok)return;
+       S.orderRec=origRec?findCust(origRec):null;
+       if(origRec&&!S.orderRec)return;
+       openM('mOrder');}});
+}
+function openOrdersSheet(){if(S.data)window.open(S.data.meta.ordersUrl,'_blank');}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeM('mEdit');closeM('mFu');closeM('mOrder');}});
+load();
+</script>
+</body>
+</html>
