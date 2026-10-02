@@ -1,0 +1,12 @@
+{
+  "name": "feelheal-sales-tracker",
+  "version": "2.2.0",
+  "private": true,
+  "description": "FeelHeal sales tracker for Google Sheets (Apps Script). Tests run src/Code.gs and src/Index.html on an Apps Script emulator.",
+  "scripts": {
+    "test": "node test/run.js",
+    "test:server": "node test/run.js --server",
+    "test:browser": "node test/run.js --browser"
+  },
+  "license": "UNLICENSED"
+}
