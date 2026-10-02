@@ -79,7 +79,7 @@
 
     // ---------------- spreadsheet model ----------------
     var sheetSeq = 0;
-    function Cell() { this.v = ''; this.f = ''; this.fmt = ''; this.note = ''; this.spillOf = null; }
+    function Cell() { this.v = ''; this.f = ''; this.fmt = ''; this.note = ''; this.spillOf = null; this.dv = null; }
 
     function Sheet(ss, name, rows, cols) {
       this.ss = ss; this.name = name; this.id = ++sheetSeq;
@@ -139,6 +139,10 @@
         }
       }
       if (val == null) val = '';
+      if (cell.dv && val !== '' && !cell.dv.ok(val, this.ss)) {
+        throw new Error('Exception: The data you entered in cell ' + colName(c) + r + ' violates the data validation rules set on this cell.');
+      }
+      if (this.ss._failWrite && this.ss._failWrite(this.name, r, c)) throw new Error('Exception: simulated write failure at ' + colName(c) + r);
       var anchor = this._anchorFor(r, c);
       if (anchor) {
         if (val !== '') { this._breakAnchor(anchor); cell.spillOf = null; }
@@ -217,7 +221,12 @@
     Sheet.prototype.insertColumnsAfter = function (after, n) { count('writes', 'insertColumnsAfter'); this.maxCols += n; };
     Sheet.prototype.insertColumnBefore = function (col) {
       count('writes', 'insertColumnBefore');
-      this.grid.forEach(function (row) { if (row) row.splice(col, 0, undefined); });
+      this.grid.forEach(function (row) {
+        if (!row) return;
+        var right = row[col];
+        row.splice(col, 0, undefined);
+        if (right && right.dv) { row[col] = new Cell(); row[col].dv = right.dv; }
+      });
       var anchors = {}; Object.keys(this.anchors).forEach(function (k) { var p = k.split(','); anchors[p[0] + ',' + (+p[1] >= col ? +p[1] + 1 : +p[1])] = true; });
       this.anchors = anchors;
       this.maxCols++;
@@ -238,6 +247,7 @@
     Sheet.prototype.getConditionalFormatRules = function () { return this.cf.slice(); };
     Sheet.prototype.setConditionalFormatRules = function (r) { this.cf = r.slice(); };
 
+    function colName(n) { var s = ''; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
     function colNum(s) { var n = 0; for (var i = 0; i < s.length; i++) n = n * 26 + (s.charCodeAt(i) - 64); return n; }
     function parseA1(sheet, a1) {
       var m = /^([A-Z]+)(\d*)(?::([A-Z]+)(\d*))?$/.exec(a1);
@@ -338,7 +348,9 @@
     Range.prototype.setNote = function (n) { var sh = this.sheet; this._each(function (r, c) { sh._cell(r, c, true).note = n; }); return this; };
     Range.prototype.clearNote = function () { var sh = this.sheet; this._each(function (r, c) { var x = sh._cell(r, c); if (x) x.note = ''; }); return this; };
     Range.prototype.getNote = function () { var c = this.sheet._cell(this.r, this.c); return c ? c.note : ''; };
-    ['setFontWeight', 'setBackground', 'setWrap', 'setDataValidation'].forEach(function (m) {
+    Range.prototype.setDataValidation = function (rule) { var sh = this.sheet; this._each(function (r, c) { sh._cell(r, c, true).dv = rule && rule.ok ? rule : null; }); return this; };
+    Range.prototype.clearDataValidations = function () { count('writes', 'clearDataValidations'); var sh = this.sheet; this._each(function (r, c) { var x = sh._cell(r, c); if (x) x.dv = null; }); return this; };
+    ['setFontWeight', 'setBackground', 'setWrap'].forEach(function (m) {
       Range.prototype[m] = function () { return this; };
     });
     Range.prototype.protect = function () {
@@ -378,7 +390,16 @@
       getActiveSpreadsheet: function () { return ss; },
       flush: function () { stats.flushes++; },
       getUi: function () { throw new Error('Cannot call SpreadsheetApp.getUi() from this context.'); },
-      newDataValidation: function () { return chain(); },
+      newDataValidation: function () {
+        var rule = { ok: function () { return true; } }, strict = true, b = {
+          requireValueInRange: function (rng) { rule.ok = function (v) { for (var i = 0; i < rng.nr; i++) { if (String(rng.sheet._valueOf(rng.r + i, rng.c)) === String(v)) return true; } return false; }; return b; },   // silent read: not counted in stats
+          requireValueInList: function (list) { rule.ok = function (v) { return list.indexOf(v) >= 0; }; return b; },
+          requireNumberGreaterThanOrEqualTo: function (n) { rule.ok = function (v) { return typeof v === 'number' && v >= n; }; return b; },
+          setAllowInvalid: function (a) { strict = !a; return b; },
+          build: function () { var f = rule.ok; return { ok: function (v, ss) { return !strict || f(v, ss); } }; }
+        };
+        return b;
+      },
       newConditionalFormatRule: function () {
         var ranges = [], b = {
           whenNumberEqualTo: function () { return b; }, setBackground: function () { return b; },
@@ -461,6 +482,7 @@
       docProps: docProps, triggers: triggers, backups: backups, logs: logs, tz: TZ, clock: clock,
       serialToDate: serialToDate, dateToSerial: dateToSerial, ymdOfSerial: ymdOfSerial,
       setNow: function (ms) { clock.now = ms; },
+      failWrites: function (fn) { ss._failWrite = fn; },
       sheet: function (n) { return ss.getSheetByName(n); },
       // raw cell value, bypassing Date conversion (numbers stay serials)
       raw: function (sheet, r, c) { return ss.getSheetByName(sheet)._valueOf(r, c); },

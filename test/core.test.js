@@ -46,6 +46,7 @@ function settings(env) { return { threshold: env.raw(SETTINGS, 1, 2), minOrders:
 function randomOrders(env, R, n) {
   const sh = env.sheet(ORDERS), today = todaySerial(env), names = CUSTOMERS.map(c => c[0]);
   const rows = [];
+  sh.getRange(2, 1, n, 17).clearDataValidations();   // deliberately invalid rows (bad SKU, blank names…) as left by old data
   for (let i = 0; i < n; i++) {
     const prev = rows[rows.length - 1];
     let name = R.chance(0.05) ? '' : R.pick(names);
@@ -400,6 +401,44 @@ test('upgrade preflight: if column A is not fully calculated, setup stops before
     const m = ID_RE.exec(id), same = shown.filter(s => ID_RE.test(s) && s.slice(3, 7) === m[1]).map(s => +s.slice(8));
     assert.ok(+m[2] > Math.max(...same), id + ' reuses a number');
   });
+});
+
+// Reported from a real sheet: setup died with «The data you entered in cell A2 violates the data validation rules set on this cell».
+// A sheet that was upgraded from v2.0 had its customer-name rule (value must be in the customers list) on the new column A too.
+function withColumnARule(env) {
+  const main = env.sheet(MAIN), m = mainCols(env), nc = m['نام مرکز/پزشک'];
+  const rule = SpreadsheetApp_(env).newDataValidation().requireValueInRange(main.getRange(2, nc, 100, 1)).setAllowInvalid(false).build();
+  env.sheet(ORDERS).getRange(2, 1, 150, 1).setDataValidation(rule);
+}
+const SpreadsheetApp_ = env => ({ newDataValidation: () => env.ctx.SpreadsheetApp.newDataValidation() });
+
+test('upgrade: a leftover validation rule on column A must not block freezing the invoice codes', () => {
+  const { ctx, env } = v21Sheet(7);
+  env.ctx = ctx;
+  const shown = env.sheet(ORDERS).getRange(2, 1, 40, 1).getDisplayValues().map(r => r[0]);
+  withColumnARule(env);
+  load(ctx, 'v22');
+  ctx.setup();
+  eq(orderRows(env).map(r => r.A), shown);
+  assert.strictEqual(env.docProps.fh_schema, '2.2');
+  // and the web app can write a new code into A afterwards
+  assert.ok(call(ctx, 'saveOrder', { name: 'کلینیک آرامش', type: 'خرید', sku: 'BCD 1010', units: 1, amount: 0, date: '2026-10-02' }).result.orderId);
+});
+
+test('upgrade: if freezing the codes fails midway, the live sheet keeps its formulas and setup can be rerun', () => {
+  const { ctx, env } = v21Sheet(7);
+  const shown = env.sheet(ORDERS).getRange(2, 1, 40, 1).getDisplayValues().map(r => r[0]);
+  const f = [1, 12, 13, 14, 15, 16, 17].map(c => env.formula(ORDERS, 1, c));
+  load(ctx, 'v22');
+  env.failWrites((sheet, r, c) => sheet === ORDERS && c === 1 && r === 2);
+  assert.throws(() => ctx.setup(), /simulated write failure/);
+  eq([1, 12, 13, 14, 15, 16, 17].map(c => env.formula(ORDERS, 1, c)), f, 'header formulas not restored');
+  evaluateV21(env);                                   // Sheets recalculates the restored formulas (the emulator has no formula engine)
+  eq(env.sheet(ORDERS).getRange(2, 1, 40, 1).getDisplayValues().map(r => r[0]), shown, 'codes lost');
+  assert.notStrictEqual(env.docProps.fh_schema, '2.2');
+  env.failWrites(null);
+  ctx.setup();
+  eq(orderRows(env).map(r => r.A), shown);
 });
 
 test('API usage per operation (emulator counts, cache miss vs hit)', () => {

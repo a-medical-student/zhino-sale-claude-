@@ -657,21 +657,35 @@ function ensureOrders_(ss, main, map, out) {
     sh.setRightToLeft(true);
     out.push('➕ تب سفارش‌ها ساخته شد');
   }
-  // عنوان‌ها به‌صورت متن ساده — فرمول‌های قدیمی A1 و L1..Q1 برداشته می‌شوند (K1 پایین‌تر دوباره نوشته می‌شود)
-  sh.getRange(1, 1, 1, ORDER_NCOLS).setValues([ORDER_HEADERS]).setFontWeight('bold').setWrap(true);
+  // ستون A کد فاکتور است: هر قاعده‌ی اعتبارسنجی که از ستون «نام مشتری» به آن رسیده (مثلاً با درج ستون در ارتقا از v2.0)
+  // نوشتن کد را رد می‌کرد («The data you entered in cell A2 violates the data validation rules»).
   var n = sh.getMaxRows() - 1;
-  sh.getRange(2, OC.id, n, 1).setNumberFormat('@');
-  if (frozen) {
-    var re = idRe_(), seen = {}, kept = 0, renew = [];
-    var vals = frozen.map(function (x, i) {
-      var id = String(x[0]).trim();
-      if (!re.test(id) || seen[id]) { if (id) renew.push(i + 2); return ['']; }
-      seen[id] = true; kept++;
-      return [id];
-    });
-    if (vals.length) sh.getRange(2, OC.id, vals.length, 1).setValues(vals);
-    out.push('🔒 ' + kept + ' کد فاکتور موجود ثابت شد (دیگر با مرتب‌سازی، حذف ردیف یا تغییر تاریخ عوض نمی‌شود)');
-    if (renew.length) out.push('⚠️ ردیف‌هایی که کد معتبر/یکتا نداشتند و کد تازه می‌گیرند: ' + renew.join('، '));
+  sh.getRange(2, OC.id, n, 1).clearDataValidations();
+  // عنوان‌ها به‌صورت متن ساده — فرمول‌های قدیمی A1 و L1..Q1 برداشته می‌شوند (K1 پایین‌تر دوباره نوشته می‌شود).
+  // اگر ثابت‌کردن کدها وسط کار شکست خورد، فرمول‌های عنوان برمی‌گردند؛ وگرنه کدهای نمایش‌داده‌شده از شیت گم می‌شدند
+  // و اجرای دوباره‌ی setup آن‌ها را به ترتیب ردیف از نو می‌ساخت (شماره‌ی فاکتورها عوض می‌شد).
+  var oldHdr = frozen ? sh.getRange(1, 1, 1, ORDER_NCOLS).getFormulas()[0] : null;
+  try {
+    sh.getRange(1, 1, 1, ORDER_NCOLS).setValues([ORDER_HEADERS]).setFontWeight('bold').setWrap(true);
+    sh.getRange(2, OC.id, n, 1).setNumberFormat('@');
+    if (frozen) {
+      var re = idRe_(), seen = {}, kept = 0, renew = [];
+      var vals = frozen.map(function (x, i) {
+        var id = String(x[0]).trim();
+        if (!re.test(id) || seen[id]) { if (id) renew.push(i + 2); return ['']; }
+        seen[id] = true; kept++;
+        return [id];
+      });
+      if (vals.length) sh.getRange(2, OC.id, vals.length, 1).setValues(vals);
+      out.push('🔒 ' + kept + ' کد فاکتور موجود ثابت شد (دیگر با مرتب‌سازی، حذف ردیف یا تغییر تاریخ عوض نمی‌شود)');
+      if (renew.length) out.push('⚠️ ردیف‌هایی که کد معتبر/یکتا نداشتند و کد تازه می‌گیرند: ' + renew.join('، '));
+    }
+  } catch (err) {
+    if (oldHdr) {
+      oldHdr.forEach(function (f, i) { if (f) sh.getRange(1, i + 1).setFormula(f); });
+      sh.getRange(2, OC.id, n, 1).setNumberFormat('General');
+    }
+    throw err;
   }
   ORDER_AUTO_COLS_1IDX.forEach(function (c) { sh.getRange(1, c).setBackground('#eef2f6'); });
   sh.setFrozenRows(1);
