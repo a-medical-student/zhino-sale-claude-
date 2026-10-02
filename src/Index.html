@@ -547,7 +547,7 @@ function saveEdit(){
       if(cur.name!==nc.name){
         d.orders.forEach(function(o){if(o.name===cur.name)o.name=nc.name;});
         var ci=d.meta.customerNames.indexOf(cur.name);if(ci>=0)d.meta.customerNames[ci]=nc.name;}
-    }else d.customers.push(nc);
+    }else{d.customers.push(nc);d.meta.customerNames.push(nc.name);}
   },{fail:function(){
     // فرم دست‌نخورده است (از آن موقع باز نشده) → با همان ورودی کاربر دوباره باز شود
     if(S.form.mEdit!==tok)return;
@@ -646,6 +646,8 @@ function saveOrderForm(){
 }
 function openOrdersSheet(){if(S.data)window.open(S.data.meta.ordersUrl,'_blank');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeM('mEdit');closeM('mFu');closeM('mOrder');}});
+// تا ذخیره‌ای در جریان است، بستن یا تازه‌کردن صفحه هشدار می‌دهد (هر جا مرورگر این را برای صفحه‌ی وب‌اپ اجازه دهد)
+window.addEventListener('beforeunload',function(e){if(S.inflight>0){e.preventDefault();e.returnValue='';}});
 load();
 </script>
 </body>

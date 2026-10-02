@@ -12,7 +12,15 @@
  *  - کش سرور با شماره نسخه: هر ذخیره، هر ویرایش مستقیم شیت (onEdit) و هر تغییر ساختاری (onChange) کش را باطل می‌کند.
  *  - زمان‌سنجی: هر فراخوانی زمان مراحلش را در Executions ثبت می‌کند؛ تابع benchmark برای اندازه‌گیری.
  *
- * ارتقا از v2.1: کد را جایگزین کنید و setup را یک‌بار اجرا کنید (README 02102026).
+ * اصلاحات نسخه‌ی نهایی نسبت به پیش‌نویس v2.2 (بازبینی و آزمون: docs/PLAN_REVIEW.md و پوشه‌ی test):
+ *  - setup پیش از هر تغییری بررسی می‌کند ستون A (کد فرمولی v2.1) کامل محاسبه شده باشد؛ اگر جایی «Loading…» یا خطا
+ *    نشان دهد، متوقف می‌شود — وگرنه آن متن به‌جای شماره‌ی فاکتور ثابت می‌شد (checkSchema هم همین را گزارش می‌کند).
+ *  - مرتب‌سازی شیت (که onEdit را صدا نمی‌زند) هم کش را باطل می‌کند.
+ *  - تریگر روزانه دقیقاً ساعت ۰ به وقت منطقه زمانی شیت اجرا می‌شود.
+ *  - پاسخ‌های کش‌شده دیگر زمان‌سنجی و نتیجه‌ی یک درخواست قدیمی را با خود نمی‌آورند.
+ *  - خطای ممیز شناور در مبالغ اعشاری باعث بازنویسی بی‌پایان ستون‌های محاسبه‌ای نمی‌شود.
+ *
+ * ارتقا از v2.1: کد را جایگزین کنید و setup را یک‌بار اجرا کنید (README.md).
  * پیش از آن می‌توانید checkSchema را اجرا کنید تا بدون هیچ تغییری گزارش بگیرید.
  */
 
@@ -256,9 +264,11 @@ function runs_(items) {
   });
   return out;
 }
-// مقایسه مقدار خام شیت با مقدار محاسبه‌شده (تاریخ → شماره سریال)
+// مقایسه مقدار خام شیت با مقدار محاسبه‌شده (تاریخ → شماره سریال؛ عدد → ۱۵ رقم معنادار، تا خطای ممیز شناور
+// مثل 0.1+0.2 باعث بازنویسی بی‌پایان نشود)
 function cmp_(v, tz) {
   if (v instanceof Date) { var s = serialOf_(v, tz); return s === null ? '?' : String(s); }
+  if (typeof v === 'number') return String(Number(v.toPrecision(15)));
   return v == null ? '' : String(v);
 }
 
@@ -396,19 +406,39 @@ function checkSchema() {
   var schema = PropertiesService.getDocumentProperties().getProperty('fh_schema');
   out.push(schema === CFG.SCHEMA ? '✅ ساختار شیت: نسخه ' + CFG.SCHEMA
                                  : '⚠️ ساختار شیت هنوز نسخه ' + CFG.SCHEMA + ' نیست — setup را اجرا کنید.');
-  var osh = ss.getSheetByName(CFG.ORDERS_SHEET);
-  if (osh && osh.getLastColumn() >= 1 && osh.getRange(1, 1).getFormula()) {
-    var lastO = lastDataRow_(osh, OC.name);
-    var ids = lastO >= 2 ? osh.getRange(2, 1, lastO - 1, 1).getDisplayValues() : [];
-    var re = idRe_(), valid = ids.filter(function (x) { return re.test(String(x[0]).trim()); }).length;
-    out.push('🔒 کد فاکتور هنوز فرمولی است؛ setup کد ' + valid + ' سفارش را دقیقاً همان‌طور که الان نمایش داده می‌شود ثابت می‌کند' +
-             (ids.length - valid ? ' (' + (ids.length - valid) + ' ردیف بدون کد معتبر، کد تازه می‌گیرند)' : '') + '.');
+  var lg = legacyIds_(ss.getSheetByName(CFG.ORDERS_SHEET));
+  if (lg) {
+    out.push('🔒 کد فاکتور هنوز فرمولی است؛ setup کد ' + lg.valid + ' سفارش را دقیقاً همان‌طور که الان نمایش داده می‌شود ثابت می‌کند' +
+             (lg.renew ? ' (' + lg.renew + ' سفارش بدون کد معتبر — تاریخ خالی یا متنی — پس از اصلاح تاریخ کد تازه می‌گیرد)' : '') + '.');
+    if (lg.bad.length) out.push('⛔ ستون A این ردیف‌ها به‌جای کد، خطا یا «در حال محاسبه» نشان می‌دهد: ' + lg.bad.slice(0, 10).join('، ') +
+             (lg.bad.length > 10 ? ' …' : '') + ' — تا وقتی همه‌ی کدها درست نمایش داده نشوند، setup اجرا نمی‌شود (README گام ۲).');
   }
 
   var sTz = ss.getSpreadsheetTimeZone();
   out.push(sTz === 'Asia/Tehran' ? '✅ منطقه زمانی شیت: Asia/Tehran'
                                  : '⚠️ منطقه زمانی شیت ' + sTz + ' است؛ برای درست بودن «امروز» آن را Asia/Tehran کنید (README گام ۲).');
   return report_(out);
+}
+
+/**
+ * ساختار v2.1 (کد فاکتور فرمولی در A1): کدهایی که الان در ستون A نمایش داده می‌شوند. null اگر ستون A فرمولی نیست.
+ * {ids: [[متن]], valid: تعداد کد معتبر, renew: سفارش دارای نام بدون کد معتبر (تاریخ خالی/متنی → «ZH--…»),
+ *  bad: ['ردیف («متن»)'] — سفارش دارای نام که به‌جای کد، خطا یا «Loading…» نشان می‌دهد}
+ */
+function legacyIds_(sh) {
+  if (!sh || sh.getLastColumn() < 1 || !sh.getRange(1, 1).getFormula()) return null;
+  var last = lastDataRow_(sh, OC.name);
+  var rows = last >= 2 ? sh.getRange(2, 1, last - 1, 2).getDisplayValues() : [];
+  var re = idRe_(), noDate = CFG.ORDER_ID_PREFIX + '--', res = { ids: [], valid: 0, renew: 0, bad: [] };
+  rows.forEach(function (r, i) {
+    var id = String(r[0]).trim();
+    res.ids.push([r[0]]);
+    if (re.test(id)) res.valid++;
+    else if (!String(r[1]).trim()) return;
+    else if (!id || id.indexOf(noDate) === 0) res.renew++;
+    else res.bad.push((i + 2) + ' («' + id + '»)');
+  });
+  return res;
 }
 
 function backup_(ss) {
@@ -435,6 +465,15 @@ function setup() {
   try {
     var main = findMainSheet_(ss);
     if (!main) throw new Error('تب اصلی پیدا نشد (عنوان «نام مرکز/پزشک» در ردیف ۱).');
+
+    // پیش‌شرط ارتقای v2.1، پیش از هر تغییری: کدهای فرمولی ستون A باید کامل محاسبه شده باشند،
+    // وگرنه «Loading…» یا #ERROR! به‌جای کد ثابت می‌شد و آن سفارش‌ها شماره‌ی فاکتورشان را از دست می‌دادند.
+    var lg = legacyIds_(ss.getSheetByName(CFG.ORDERS_SHEET));
+    if (lg && lg.bad.length && !RENEW_BROKEN_IDS_) {
+      throw new Error('setup متوقف شد و چیزی را تغییر نداد: ستون A تب «' + CFG.ORDERS_SHEET + '» در این ردیف‌ها به‌جای کد فاکتور، ' +
+        'خطا یا «در حال محاسبه» نشان می‌دهد: ' + lg.bad.slice(0, 10).join('، ') + (lg.bad.length > 10 ? ' …' : '') +
+        '. شیت را باز کنید، صبر کنید تا همه‌ی کدها نمایش داده شوند و دوباره setup را اجرا کنید (README گام ۲).');
+    }
 
     // فاز ۰ — پشتیبان
     out.push('📦 نسخه پشتیبان: ' + backup_(ss));
@@ -530,6 +569,16 @@ function setup() {
   return report_(out);
 }
 
+/**
+ * فقط وقتی setup به‌خاطر کدهای خطادار ستون A متوقف شد، خطا با بازکردن دوباره‌ی شیت برطرف نمی‌شود،
+ * و مطمئنید آن سفارش‌ها هنوز فاکتوری با آن کد ندارند: setup اجرا و آن ردیف‌ها کد تازه می‌گیرند (README گام ۲).
+ */
+var RENEW_BROKEN_IDS_ = false;
+function setupRenewBrokenCodes() {
+  RENEW_BROKEN_IDS_ = true;
+  return setup();
+}
+
 // SUMIFS/COUNTIFS این نویسه‌ها را wildcard یا عملگر می‌خوانند
 function badName_(n) { return /[*?~]/.test(n) || /^[=<>]/.test(n); }
 function badNameRows_(sh, map) {
@@ -599,11 +648,9 @@ function ensureOrders_(ss, main, map, out) {
             ' عنوان «' + ORDER_HEADERS[i] + '» ندارد. تب را تغییر نام دهید یا حذف کنید و دوباره setup را اجرا کنید.');
         }
       }
-      // v2.1 → v2.2: پیش از برداشتن فرمول، کدهای نمایش‌داده‌شده را بردار
-      if (sh.getRange(1, 1).getFormula()) {
-        var lastF = lastDataRow_(sh, OC.name);
-        frozen = lastF >= 2 ? sh.getRange(2, 1, lastF - 1, 1).getDisplayValues() : [];
-      }
+      // v2.1 → v2.2: پیش از برداشتن فرمول، کدهای نمایش‌داده‌شده را بردار (setup پیش‌تر خطا/«Loading…» را رد کرده است)
+      var lg = legacyIds_(sh);
+      if (lg) frozen = lg.ids;
     }
   } else {
     sh = ss.insertSheet(CFG.ORDERS_SHEET);
@@ -702,11 +749,14 @@ function protectFormulaCols_(sh, cols) {
 }
 
 // تریگرهای نصبی: بازمحاسبه روزانه (وضعیت معوق/پیگیری به «امروز» وابسته است) + تغییرات ساختاری (حذف/درج ردیف)
+// تریگر روزانه هر بار از نو ساخته می‌شود تا ساعت ۰ به وقت منطقه زمانی شیت باشد، نه منطقه زمانی پروژه‌ی اسکریپت.
 function ensureTriggers_(ss) {
   var tr = ScriptApp.getProjectTriggers();
-  var has = function (fn) { return tr.some(function (t) { return t.getHandlerFunction() === fn; }); };
-  if (!has('dailyRefresh')) ScriptApp.newTrigger('dailyRefresh').timeBased().everyDays(1).atHour(0).create();
-  if (!has('onSheetChange')) ScriptApp.newTrigger('onSheetChange').forSpreadsheet(ss).onChange().create();
+  tr.forEach(function (t) { if (t.getHandlerFunction() === 'dailyRefresh') ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('dailyRefresh').timeBased().everyDays(1).atHour(0).inTimezone(ss.getSpreadsheetTimeZone()).create();
+  if (!tr.some(function (t) { return t.getHandlerFunction() === 'onSheetChange'; })) {
+    ScriptApp.newTrigger('onSheetChange').forSpreadsheet(ss).onChange().create();
+  }
 }
 
 // ============================================================
@@ -769,11 +819,12 @@ function convertDates_(sh, rng, cols) {
   });
 }
 
-// تریگر نصبی onChange: درج/حذف ردیف و ستون، تغییرات ساختاری دیگر (ویرایش عادی را onEdit پوشش می‌دهد)
+// تریگر نصبی onChange: درج/حذف ردیف و ستون و تغییرات ساختاری دیگر → بازمحاسبه.
+// کش در هر حال باطل می‌شود: مرتب‌سازی (Data → Sort range) onEdit را صدا نمی‌زند و نوع تغییرش مستند نیست.
 function onSheetChange(e) {
-  var t = e && e.changeType;
-  if (t === 'EDIT' || t === 'FORMAT') return;
   try { bumpCache_(); } catch (x) {}
+  var t = e && e.changeType;
+  if (t === 'EDIT' || t === 'FORMAT') return;   // ویرایش عادی را onEdit بازمحاسبه می‌کند
   try { recalcLocked_(20000, true); } catch (x) { console.error('onSheetChange: ' + x); }
 }
 
@@ -1104,13 +1155,18 @@ function commit_(snap, t, extra, full) {
   SpreadsheetApp.flush();
   if (t) t.lap('flush');
   var obj = build_(snap, comp);
-  if (extra) obj.result = extra;
   obj._stamp = Date.now();
-  if (t) obj._ms = t.done();
   var json = JSON.stringify(obj);
   var cache = cache_(), ver = bumpCache_(cache);
   cachePutData_(cache, ver, snap.today, json);
-  return { json: json, ids: ids, writes: writes };
+  return { json: withTail_(json, { result: extra || undefined, _ms: t ? t.done() : undefined }), ids: ids, writes: writes };
+}
+
+// نتیجه‌ی همین درخواست (result، _ms) فقط به پاسخ اضافه می‌شود، نه به نسخه‌ی کش‌شده —
+// وگرنه پاسخ‌های بعدی از کش، زمان‌سنجی و کد فاکتورِ یک درخواست قدیمی را با خود می‌آوردند.
+function withTail_(json, tail) {
+  var t = JSON.stringify(tail);   // کلیدهای undefined حذف می‌شوند
+  return t === '{}' ? json : json.slice(0, -1) + ',' + t.slice(1);
 }
 
 // پاسخ برنامه وب — همان شکل v2.1 به‌اضافه‌ی warnings، meta.repeatStage، _stamp و _ms
@@ -1259,10 +1315,9 @@ function getData() {
   }
   var obj = build_(snap, comp);
   obj._stamp = Date.now();
-  obj._ms = t.done();
   var json = JSON.stringify(obj);
   cachePutData_(cache, ver, today, json);
-  return json;
+  return withTail_(json, { _ms: t.done() });
 }
 
 /**
